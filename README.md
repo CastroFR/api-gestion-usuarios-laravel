@@ -4,11 +4,11 @@
 API RESTful para gestión de usuarios desarrollada en Laravel con autenticación JWT, operaciones CRUD y sistema de estadísticas.
 
 ## Equipo de Desarrollo
-- [Nombre1] - Configuración del Proyecto
-- [Nombre2] - Autenticación y Seguridad
-- [Nombre3] - CRUD Usuarios (Parte 1)
-- [Nombre4] - CRUD Usuarios (Parte 2)
-- [Nombre5] - Estadísticas y Documentación
+- [Por definir] - Configuración del Proyecto
+- [Por definir] - Autenticación y Seguridad
+- [Por definir] - CRUD Usuarios (Parte 1)
+- [Por definir] - CRUD Usuarios (Parte 2)
+- [Por definir] - Estadísticas y Documentación
 
 ## Características
 - ✅ Autenticación JWT con refresh token
@@ -24,5 +24,7 @@ API RESTful para gestión de usuarios desarrollada en Laravel con autenticación
 - PHP 8.1+
 
 ## Instalación
-*(Completaremos esto luego)*
+Ver [PROJECT_SETUP.md](PROJECT_SETUP.md) para detalles de instalación y configuración.
 
+## Flujo de Trabajo
+Cada miembro del equipo trabajará en una rama individual y luego hará merge a `main`. Ver [PROJECT_SETUP.md](PROJECT_SETUP.md) para más detalles.
