@@ -29,3 +29,9 @@ cd api-gestion-usuarios-laravel
 ## Crean su rama personal/feature
 git checkout -b persona1/autenticacion
 ## O pueden usar: feature/autenticacion-juan
+
+## Configuración de Base de Datos
+
+1. Crear base de datos MySQL local:
+```sql
+CREATE DATABASE api_gestion_usuarios;
