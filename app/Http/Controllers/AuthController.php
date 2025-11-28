@@ -18,10 +18,20 @@ class AuthController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255|min:2',
-                'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8|confirmed',
-            ]);
+                'name' => 'required|string|min:3|max:50|regex:/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/',
+                'email' => 'required|email:rfc,dns|max:255|unique:users,email',
+                'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/[A-Z]/',    // al menos 1 mayúscula
+                'regex:/[a-z]/',    // al menos 1 minúscula
+                'regex:/[0-9]/',    // al menos 1 número
+                'regex:/[@$!%*?&]/' // al menos un símbolo
+    ]
+]);
+
 
             if ($validator->fails()) {
                 return response()->json([
@@ -57,9 +67,10 @@ class AuthController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'email' => 'required|string|email',
-                'password' => 'required|string|min:8'
-            ]);
+                'email' => 'required|email:rfc',
+                'password' => 'required|string|min:8',
+]);
+
 
             if ($validator->fails()) {
                 return response()->json([
@@ -129,14 +140,41 @@ class AuthController extends Controller
 
     /**
      * Refresh token - PARA IMPLEMENTAR
-     * (Persona 2 debe completar esta funcionalidad)
+     * (IMPLEMENTADO SEGÚN REQUERIMIENTO)
      */
+ 
     public function refreshToken(Request $request)
     {
-        // TODO: Implementar refresh token
-        return response()->json([
-            'message' => 'Refresh token endpoint - Por implementar',
-            'status' => 501
-        ], 501);
+        try {
+            $user = $request->user();
+
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Usuario no autenticado',
+                    'status' => 401
+                ], 401);
+            }
+
+            // Revocar token actual
+            $user->currentAccessToken()->delete();
+
+            // Crear nuevo token (5 minutos)
+            $expiration = Carbon::now()->addMinutes(5);
+            $newToken = $user->createToken('auth_token', ['*'], $expiration)->plainTextToken;
+
+            return response()->json([
+                'message' => 'Token renovado exitosamente',
+                'access_token' => $newToken,
+                'token_type' => 'Bearer',
+                'expires_at' => $expiration->toDateTimeString(),
+                'status' => 200
+            ], 200);
+
+        } catch (\Exception $error) {
+            return response()->json([
+                'message' => 'Error al refrescar el token',
+                'error' => $error->getMessage()
+            ], 500);
+        }
     }
 }
