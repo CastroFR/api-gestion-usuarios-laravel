@@ -3,140 +3,124 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules;
 
 class AuthController extends Controller
 {
     /**
-     * Registrar nuevo usuario
+     * Registro de usuario
      */
     public function register(Request $request)
     {
-        try {
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255|min:2',
-                'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8|confirmed',
-            ]);
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Error de validación',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-            ]);
-
+        if ($validator->fails()) {
             return response()->json([
-                'message' => 'Usuario registrado exitosamente',
-                'user' => $user,
-                'status' => 201
-            ], 201);
-
-        } catch (\Exception $error) {
-            return response()->json([
-                'message' => 'Error al registrar usuario',
-                'error' => $error->getMessage()
-            ], 500);
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario registrado exitosamente',
+            'data' => [
+                'user' => $user,
+                'token' => $token,
+                'token_type' => 'Bearer'
+            ]
+        ], 201);
     }
 
     /**
-     * Login de usuario - TOKEN de 5 MINUTOS
+     * Login de usuario
      */
     public function login(Request $request)
     {
-        try {
-            $validator = Validator::make($request->all(), [
-                'email' => 'required|string|email',
-                'password' => 'required|string|min:8'
-            ]);
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Error de validación',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $credentials = $request->only('email', 'password');
-
-            if (Auth::attempt($credentials)) {
-                $user = $request->user();
-                
-                // TOKEN de 5 MINUTOS como requiere el proyecto
-                $expirationTime = Carbon::now()->addMinutes(5);
-                
-                $token = $user->createToken('auth_token', ['*'], $expirationTime)->plainTextToken;
-
-                return response()->json([
-                    'message' => 'Login exitoso',
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email
-                    ],
-                    'token_type' => 'Bearer',
-                    'access_token' => $token,
-                    'expires_at' => $expirationTime->toDateTimeString(),
-                    'status' => 200
-                ], 200);
-            }
-
+        if (!Auth::attempt($credentials)) {
             return response()->json([
-                'message' => 'Credenciales incorrectas',
-                'status' => 401
+                'success' => false,
+                'message' => 'Credenciales incorrectas'
             ], 401);
-
-        } catch (\Exception $error) {
-            return response()->json([
-                'message' => 'Error en el login',
-                'error' => $error->getMessage()
-            ], 500);
         }
+
+        $user = User::where('email', $request->email)->first();
+        $token = $user->createToken('auth_token', ['*'], now()->addMinutes(5))->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Inicio de sesión exitoso',
+            'data' => [
+                'user' => $user,
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'expires_in' => 300 // 5 minutos en segundos
+            ]
+        ]);
     }
 
     /**
-     * Logout - Revocar token actual
+     * Logout de usuario
      */
     public function logout(Request $request)
     {
-        try {
-            $user = $request->user();
-            $user->currentAccessToken()->delete();
+        $request->user()->currentAccessToken()->delete();
 
-            return response()->json([
-                'message' => 'Logout exitoso',
-                'status' => 200
-            ], 200);
-
-        } catch (\Exception $error) {
-            return response()->json([
-                'message' => 'Error en el logout',
-                'error' => $error->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesión cerrada exitosamente'
+        ]);
     }
 
     /**
-     * Refresh token - PARA IMPLEMENTAR
-     * (Persona 2 debe completar esta funcionalidad)
+     * Refresh token
      */
-    public function refreshToken(Request $request)
+    public function refresh(Request $request)
     {
-        // TODO: Implementar refresh token
+        $request->user()->currentAccessToken()->delete();
+        
+        $newToken = $request->user()->createToken('auth_token', ['*'], now()->addMinutes(5))->plainTextToken;
+
         return response()->json([
-            'message' => 'Refresh token endpoint - Por implementar',
-            'status' => 501
-        ], 501);
+            'success' => true,
+            'message' => 'Token actualizado',
+            'data' => [
+                'token' => $newToken,
+                'token_type' => 'Bearer',
+                'expires_in' => 300
+            ]
+        ]);
+    }
+
+    /**
+     * Obtener usuario autenticado
+     */
+    public function me(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $request->user()
+        ]);
     }
 }

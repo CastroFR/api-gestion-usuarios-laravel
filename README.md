@@ -13,11 +13,11 @@
 API RESTful para gestión de usuarios desarrollada en Laravel con autenticación JWT, operaciones CRUD y sistema de estadísticas.
 
 ## Equipo de Desarrollo
-- [Por definir] - Configuración del Proyecto
-- [Por definir] - Autenticación y Seguridad
-- [Por definir] - CRUD Usuarios (Parte 1)
-- [Por definir] - CRUD Usuarios (Parte 2)
-- [Por definir] - Estadísticas y Documentación
+- Kevin Castro
+- Mauricio Bustillo
+- Luz Fuentes
+- Alejandro Soto
+- Alvin Merino
 
 ## Características
 - ✅ Autenticación JWT con refresh token
@@ -31,6 +31,11 @@ API RESTful para gestión de usuarios desarrollada en Laravel con autenticación
 - Laravel Passport/Sanctum
 - MySQL
 - PHP 8.1+
+
+## Estado del Proyecto
+- ✅ **API Completada y Probada** - 15 tests pasando (100%)
+- ✅ **Postman Collection** - Disponible en [postman_collection.json](postman_collection.json)
+- ✅ **Documentación** - Completa en [INSTALLATION.md](INSTALLATION.md)
 
 ## Instalación
 Ver [PROJECT_SETUP.md](PROJECT_SETUP.md) para detalles de instalación y configuración.
