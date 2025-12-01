@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules;
 
 class UserController extends Controller
 {
@@ -14,156 +16,177 @@ class UserController extends Controller
      */
     public function index()
     {
-        //
-        try {
-            $users = User::select('id', 'name', 'email', 'created_at', 'updated_at')->get();
+        $users = User::withTrashed()->latest()->paginate(10);
 
-            return response()->json([
-                'message' => 'Usuarios obtenidos exitosamente',
-                'data' => $users,
-                'total' => $users->count(),
-                'status' => 200
-            ], 200);
-        } catch (\Exception $error) {
-            return response()->json([
-                'message' => 'Error al obtener usuarios',
-                'error' => $error->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'data' => $users
+        ]);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Mostrar usuario específico
      */
-    public function create()
+    public function show($id)
     {
-        //
+        $user = User::withTrashed()->find($id);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $user
+        ]);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Crear nuevo usuario
      */
     public function store(Request $request)
     {
-        //
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario creado exitosamente',
+            'data' => $user
+        ], 201);
     }
 
     /**
-     * Mostrar usuario específico.
+     * Actualizar usuario
      */
-    public function show(string $id)
+    public function update(Request $request, $id)
     {
-        //
-        try {
-            $user = User::select('id', 'name', 'email', 'created_at', 'updated_at')
-                ->findOrFail($id);
+        $user = User::withTrashed()->find($id);
 
+        if (!$user) {
             return response()->json([
-                'message' => 'Usuario encontrado',
-                'data' => $user,
-                'status' => 200
-            ], 200);
-        } catch (\Exception $error) {
-            return response()->json([
-                'message' => 'Usuario no encontrado',
-                'error' => $error->getMessage()
+                'success' => false,
+                'message' => 'Usuario no encontrado'
             ], 404);
         }
-    }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id,
+            'password' => ['sometimes', 'confirmed', Rules\Password::defaults()],
+        ]);
 
-    /**
-     * Actualizar usuario.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-        try {
-            $user = User::findOrFail($id);
-
-            $validator = Validator::make($request->all(), [
-                'name' => 'sometimes|string|max:255|min:2',
-                'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
-                'password' => 'sometimes|string|min:8|confirmed',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Error de validación',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $updateData = $request->only('name', 'email');
-
-            if ($request->has('password')) {
-                $updateData['password'] = Hash::make($request->password);
-            }
-
-            $user->update($updateData);
-
+        if ($validator->fails()) {
             return response()->json([
-                'message' => 'Usuario actualizado exitosamente',
-                'data' => $user->only('id', 'name', 'email', 'updated_at'),
-                'status' => 200
-            ], 200);
-        } catch (\Exception $error) {
-            return response()->json([
-                'message' => 'Error al actualizar usuario',
-                'error' => $error->getMessage()
-            ], 500);
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        $data = $request->only('name', 'email');
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $user->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario actualizado exitosamente',
+            'data' => $user
+        ]);
     }
 
     /**
-     * Eliminar usuario (Soft Delete).
+     * Eliminar usuario (soft delete)
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
-        try {
-            $user = User::findOrFail($id);
-            $user->delete();
+        $user = User::find($id);
 
+        if (!$user) {
             return response()->json([
-                'message' => 'Usuario eliminado exitosamente',
-                'status' => 200
-            ], 200);
-        } catch (\Exception $error) {
-            return response()->json([
-                'message' => 'Error al eliminar usuario',
-                'error' => $error->getMessage()
-            ], 500);
+                'success' => false,
+                'message' => 'Usuario no encontrado'
+            ], 404);
         }
+
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario eliminado exitosamente'
+        ]);
     }
 
     /**
      * Restaurar usuario eliminado
      */
-    public function restore(string $id)
+    public function restore($id)
     {
-        try {
-            $user = User::withTrashed()->findOrFail($id);
-            $user->restore();
+        $user = User::withTrashed()->find($id);
 
+        if (!$user) {
             return response()->json([
-                'message' => 'Usuario restaurado exitosamente',
-                'data' => $user->only('id', 'name', 'email', 'updated_at'),
-                'status' => 200
-            ], 200);
-
-        } catch (\Exception $error) {
-            return response()->json([
-                'message' => 'Error al restaurar usuario',
-                'error' => $error->getMessage()
-            ], 500);
+                'success' => false,
+                'message' => 'Usuario no encontrado'
+            ], 404);
         }
+
+        if (!$user->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El usuario no está eliminado'
+            ], 400);
+        }
+
+        $user->restore();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario restaurado exitosamente',
+            'data' => $user
+        ]);
+    }
+
+    /**
+     * Eliminar permanentemente
+     */
+    public function forceDelete($id)
+    {
+        $user = User::withTrashed()->find($id);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado'
+            ], 404);
+        }
+
+        $user->forceDelete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario eliminado permanentemente'
+        ]);
     }
 }
