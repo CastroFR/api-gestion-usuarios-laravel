@@ -67,7 +67,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
         $token = $user->createToken('auth_token', ['*'], now()->addMinutes(5))->plainTextToken;
-
+        //$token = $user->createToken('auth_token', ['*'], now()->addDays(1))->plainTextToken;
         return response()->json([
             'success' => true,
             'message' => 'Inicio de sesión exitoso',
@@ -101,7 +101,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
         
         $newToken = $request->user()->createToken('auth_token', ['*'], now()->addMinutes(5))->plainTextToken;
-
+        //$newToken = $request->user()->createToken('auth_token', ['*'], now()->addDays(1))->plainTextToken;
         return response()->json([
             'success' => true,
             'message' => 'Token actualizado',

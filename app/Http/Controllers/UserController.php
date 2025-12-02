@@ -14,9 +14,31 @@ class UserController extends Controller
     /**
      * Listar todos los usuarios
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::withTrashed()->latest()->paginate(10);
+        $query = User::withTrashed()->latest();
+
+        // Filtro por búsqueda
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtro por estado
+        if ($request->has('deleted')) {
+            if ($request->deleted === 'true' || $request->deleted === true) {
+                $query->onlyTrashed();
+            } elseif ($request->deleted === 'false' || $request->deleted === false) {
+                $query->whereNull('deleted_at');
+            }
+        }
+
+        // Paginación
+        $perPage = $request->per_page ?? 10;
+        $users = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
