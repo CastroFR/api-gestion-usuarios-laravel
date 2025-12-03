@@ -94,3 +94,31 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Estadísticas de usuarios
+
+Todos los endpoints de estadísticas requieren autenticación (`Bearer Token`).
+
+### 1. GET /api/statistics/summary
+
+Devuelve un resumen global de usuarios:
+
+```json
+{
+  "success": true,
+  "data": {
+    "today": 3,
+    "this_week": 10,
+    "this_month": 25,
+    "last_month": 18,
+    "total": 100,
+    "active": 90,
+    "deleted": 10,
+    "growth_vs_last_month": {
+      "current": 25,
+      "previous": 18,
+      "percentage": 38.89,
+      "direction": "up"
+    }
+  }
+}
